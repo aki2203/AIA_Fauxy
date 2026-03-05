@@ -189,11 +189,14 @@ st.markdown('</div>', unsafe_allow_html=True)
 
 # ================= HELPERS =================
 def satire_breakdown(text):
-points=[]
-if "!" in text:
-points.append("🎯 Uses exaggeration")
-points.append("💭 Irony contrast")
-return points
+    points = []
+
+    if "!" in text:
+        points.append("🎯 Uses exaggeration")
+
+    points.append("💭 Irony contrast")
+
+    return points
 
 # ================= MAIN LOGIC =================
 if generate_btn:
