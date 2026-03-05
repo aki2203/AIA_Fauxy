@@ -186,10 +186,13 @@ st.markdown("""
     }
     
     /* Input Fields */
-    .stTextInput > div > div > input {
-        border-radius: 50px !important;
-        border: 2px solid #e0e0e0 !important;
-        padding: 15px 20px !important;
+   .stTextInput input {
+    border-radius: 12px !important;
+    border: none !important;
+    padding: 12px 14px !important;
+    background: rgba(255,255,255,0.15) !important;
+    color: white !important;
+}
         transition: all 0.3s ease !important;
     }
     
