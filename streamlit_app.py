@@ -199,40 +199,41 @@ def satire_breakdown(text):
     return points
 
 # ================= MAIN LOGIC =================
+# ================= MAIN LOGIC =================
 if generate_btn:
 
-  if not topic:
-     st.error("Please enter a topic")
-     st.stop()
+    if not topic:
+        st.error("Please enter a topic")
+        st.stop()
 
-progress_bar=st.progress(0)
-status=st.empty()
+    progress_bar = st.progress(0)
+    status = st.empty()
 
-for i in range(100):
+    for i in range(100):
 
-if i<30:
-status.markdown("🧠 Planning satire...")
-elif i<60:
-status.markdown("🔍 Researching context...")
-elif i<90:
-status.markdown("✍️ Generating satire...")
-else:
-status.markdown("✅ Evaluating output...")
+        if i < 30:
+            status.markdown("🧠 Planning satire...")
+        elif i < 60:
+            status.markdown("🔍 Researching context...")
+        elif i < 90:
+            status.markdown("✍️ Generating satire...")
+        else:
+            status.markdown("✅ Evaluating output...")
 
-progress_bar.progress(i+1)
-time.sleep(0.01)
+        progress_bar.progress(i + 1)
+        time.sleep(0.01)
 
-try:
-resp=requests.post(API_URL,json={"topic":topic,"tone":tone})
-data=resp.json()
-except Exception as e:
-st.error(f"Backend error: {e}")
-st.stop()
+    try:
+        resp = requests.post(API_URL, json={"topic": topic, "tone": tone})
+        data = resp.json()
+    except Exception as e:
+        st.error(f"Backend error: {e}")
+        st.stop()
 
-progress_bar.empty()
-status.empty()
+    progress_bar.empty()
+    status.empty()
 
-satire=data["satire"]
+    satire = data["satire"]
 
 # ================= OUTPUT =================
 st.markdown('<div class="glass-card">', unsafe_allow_html=True)
