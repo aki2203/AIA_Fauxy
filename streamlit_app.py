@@ -201,9 +201,9 @@ def satire_breakdown(text):
 # ================= MAIN LOGIC =================
 if generate_btn:
 
-if not topic:
-st.error("Please enter a topic")
-st.stop()
+  if not topic:
+     st.error("Please enter a topic")
+     st.stop()
 
 progress_bar=st.progress(0)
 status=st.empty()
