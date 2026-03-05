@@ -205,8 +205,8 @@ if generate_btn:
      st.error("Please enter a topic")
      st.stop()
 
-progress_bar=st.progress(0)
-status=st.empty()
+ progress_bar=st.progress(0)
+ status=st.empty()
 
 for i in range(100):
 
