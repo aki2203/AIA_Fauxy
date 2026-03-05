@@ -1,120 +1,70 @@
-import streamlit as st
-import requests
-import os
-import time
+from flask import Flask, request, jsonify
+import requests, os, json
+from dotenv import load_dotenv
 
-# ---------------- CONFIG ----------------
+load_dotenv()
 
-NEWS_API_KEY = os.getenv("NEWS_API_KEY", "YOUR_NEWSAPI_KEY")
+NEWS_API_KEY = os.getenv("NEWS_API_KEY")
+GROQ_API_KEY = os.getenv("GROQ_API_KEY")
+GROQ_MODEL_NAME = os.getenv("GROQ_MODEL_NAME", "llama3-70b-8192")
+GROQ_API_URL = "https://api.groq.com/openai/v1/chat/completions"
 
-OLLAMA_URL = "http://localhost:11434/api/generate"
-MODEL_NAME = "fauxybot"
+if not GROQ_API_KEY or not NEWS_API_KEY:
+    raise RuntimeError("Set GROQ_API_KEY and NEWS_API_KEY in your environment or .env file.")
 
-st.set_page_config(
-    page_title="Fauxy – Satirical News AI",
-    page_icon="🤡",
-    layout="centered"
-)
+app = Flask(__name__)
+app.config['JSON_AS_ASCII'] = False
 
-# ---------------- UI ----------------
+def call_groq(payload):
+    headers = {
+        "Authorization": f"Bearer {GROQ_API_KEY}",
+        "Content-Type": "application/json",
+    }
+    return requests.post(GROQ_API_URL, headers=headers, json=payload, timeout=60)
 
-st.title("🤡 Fauxy")
-st.subheader("Agentic Satirical News Generator")
+@app.route('/satire', methods=['POST'])
+def generate_satire():
+    data = request.get_json()
+    topic = data.get("topic", "")
+    if not topic:
+        return jsonify({"error": "Missing 'topic' field"}), 400
 
-st.write("Turn real news into sarcastic satire.")
-
-topic = st.text_input("Enter a news topic", placeholder="Cricket, Elections, Budget...")
-
-tone = st.selectbox(
-    "Choose satire tone",
-    [
-        "auto",
-        "social media meme style",
-        "political parody",
-        "dry sarcasm",
-        "subtle irony"
-    ]
-)
-
-generate = st.button("🚀 Generate Fauxy News")
-
-# ---------------- FUNCTIONS ----------------
-
-def fetch_news(topic):
-
-    url = f"https://newsapi.org/v2/everything?q={topic}&language=en&pageSize=1&apiKey={NEWS_API_KEY}"
-
-    response = requests.get(url)
-
-    data = response.json()
-
-    if not data.get("articles"):
-        return None
-
-    article = data["articles"][0]
-
-    return article.get("description") or article.get("title")
-
-
-def generate_satire(news_summary):
+    # Fetch news
+    try:
+        news_url = f"https://newsapi.org/v2/everything?q={topic}&language=en&pageSize=1&apiKey={NEWS_API_KEY}"
+        r = requests.get(news_url, timeout=10)
+        r.raise_for_status()
+        articles = r.json().get("articles", [])
+        if not articles:
+            return jsonify({"error": "No articles found"}), 404
+        factual = articles[0].get("description") or articles[0].get("title")
+    except Exception as e:
+        return jsonify({"error": f"Failed to fetch news: {str(e)}"}), 500
 
     prompt = f"""
-You are a sarcastic reporter from 'The Fauxy'.
-
-Real news:
-{news_summary}
-
-Write a funny, sarcastic Indian satire news report.
+You are a satirical news reporter from 'The Fauxy'.
+REAL NEWS: {factual}
+Now, write a funny, sarcastic one-paragraph satirical news version.
 """
 
-    payload = {
-        "model": MODEL_NAME,
-        "prompt": prompt,
-        "stream": False
+    groq_payload = {
+        "model": GROQ_MODEL_NAME,
+        "messages": [
+            {"role": "system", "content": "You are a sharp, witty satirical journalist."},
+            {"role": "user", "content": prompt}
+        ],
+        "temperature": 0.8,
+        "max_tokens": 300
     }
 
-    response = requests.post(OLLAMA_URL, json=payload)
+    try:
+        resp = call_groq(groq_payload)
+        resp.raise_for_status()
+        result = resp.json()
+        satire = result["choices"][0]["message"]["content"]
+        return jsonify({"topic": topic, "satire": satire.strip()})
+    except Exception as e:
+        return jsonify({"error": f"Groq failed: {str(e)}"}), 502
 
-    data = response.json()
-
-    return data.get("response", "")
-
-
-# ---------------- MAIN LOGIC ----------------
-
-if generate:
-
-    if not topic:
-        st.error("Please enter a topic")
-        st.stop()
-
-    progress = st.progress(0)
-    status = st.empty()
-
-    status.write("🔎 Searching news...")
-    progress.progress(20)
-
-    news_summary = fetch_news(topic)
-
-    if not news_summary:
-        st.error("No news found for this topic.")
-        st.stop()
-
-    status.write("📰 Found news article")
-    progress.progress(50)
-
-    status.write("🤖 Generating satire...")
-    progress.progress(80)
-
-    satire = generate_satire(news_summary)
-
-    progress.progress(100)
-    status.empty()
-
-    st.success("Satire generated!")
-
-    st.subheader("📰 Real News Summary")
-    st.write(news_summary)
-
-    st.subheader("😂 Fauxy Report")
-    st.write(satire)
+if __name__ == '__main__':
+    app.run(debug=True, host="0.0.0.0", port=5000)
