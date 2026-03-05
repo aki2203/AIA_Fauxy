@@ -1,96 +1,120 @@
-# app.py (Using NewsAPI.org for descriptions)
-from flask import Flask, request, jsonify
+import streamlit as st
 import requests
-import json
-# Removed xml.etree.ElementTree as we are using JSON now
 import os
+import time
 
-# --- Configuration ---
-NEWS_API_KEY = "NEWS_API_KEY" # Your NewsAPI.org key
-OLLAMA_API_URL = "http://localhost:11434/api/generate"
-OLLAMA_MODEL_NAME = "fauxybot"
+# ---------------- CONFIG ----------------
 
+NEWS_API_KEY = os.getenv("NEWS_API_KEY", "YOUR_NEWSAPI_KEY")
 
-# --- Initialize Flask App ---
-app = Flask(__name__)
-app.config['JSON_AS_ASCII'] = False
+OLLAMA_URL = "http://localhost:11434/api/generate"
+MODEL_NAME = "fauxybot"
 
+st.set_page_config(
+    page_title="Fauxy – Satirical News AI",
+    page_icon="🤡",
+    layout="centered"
+)
 
-# --- Main Chatbot Function ---
-@app.route('/satire', methods=['POST'])
-def generate_satire():
-    data = request.get_json()
-    if not data or 'topic' not in data:
-        return jsonify({"error": "No topic provided"}), 400
-    
-    topic = data['topic']
-    print(f"🔄 Received topic: {topic}")
+# ---------------- UI ----------------
 
-    # 1. Fetch factual news summary from NewsAPI.org
-    try:
-        # --- MODIFIED: Using NewsAPI.org endpoint ---
-        news_url = f"https://newsapi.org/v2/everything?q={topic}&language=en&pageSize=1&apiKey={NEWS_API_KEY}"
-        response = requests.get(news_url, timeout=10)
-        response.raise_for_status()
-        news_data = response.json() # NewsAPI returns JSON
-        
-        if not news_data.get('articles'):
-            return jsonify({"error": f"Could not find any news articles for '{topic}' via NewsAPI.org"}), 404
-            
-        # --- MODIFIED: Get the description (summary) instead of just title ---
-        # Use description if available, otherwise fall back to title
-        article = news_data['articles'][0]
-        factual_content = article.get('description') or article.get('title') 
-        if not factual_content: # Handle cases where both might be missing/empty
-             return jsonify({"error": "Found article but it has no description or title."}), 404
-        # --- END OF MODIFICATIONS ---
+st.title("🤡 Fauxy")
+st.subheader("Agentic Satirical News Generator")
 
-        print(f"📰 Found news summary: {factual_content}")
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Error during news fetch: {e}")
-        return jsonify({"error": f"Failed to fetch news from NewsAPI.org: {e}"}), 500
-    except Exception as e: # Catch other potential errors like JSON parsing
-        print(f"Error processing news data: {e}")
-        return jsonify({"error": f"Failed processing news data: {e}"}), 500
+st.write("Turn real news into sarcastic satire.")
 
+topic = st.text_input("Enter a news topic", placeholder="Cricket, Elections, Budget...")
 
-    # 2. Construct the final, personality-driven prompt
-    final_prompt_text = f"""You are a news correspondent for 'The Fauxy', India's premier satirical news source. Your tone is witty, extremely sarcastic, and satirical. Your job is to read a real news summary and provide the real, darkly humorous, and ironic story behind the story. Use a mix of sharp English and common Indian slang or phrases where it feels natural. Be cynical, find the absurdity, and be satirically optimistic. Answer everything sarcastically.
+tone = st.selectbox(
+    "Choose satire tone",
+    [
+        "auto",
+        "social media meme style",
+        "political parody",
+        "dry sarcasm",
+        "subtle irony"
+    ]
+)
 
-Here is today's boring, official news summary:
-REAL NEWS: {factual_content}
+generate = st.button("🚀 Generate Fauxy News")
 
-Now, here is your Fauxy report:
-THE FAUXY REPORT:"""
-    
-    # 3. Send the prompt to our local Ollama model
-    try:
-        ollama_payload = {
-            "model": OLLAMA_MODEL_NAME,
-            "prompt": final_prompt_text,
-            "stream": False,
-            "options": {
-                "temperature": 0.8
-            }
-        }
-        
-        print(f"🤖 Asking '{OLLAMA_MODEL_NAME}' for a response...")
-        response = requests.post(OLLAMA_API_URL, json=ollama_payload)
-        response.raise_for_status()
-        
-        full_response = response.json()
-        satirical_article = full_response.get("response", "No content generated.")
+# ---------------- FUNCTIONS ----------------
 
-        print("✅ Generated satire successfully.")
-        return jsonify({"topic": topic, "satire": satirical_article.strip()})
-        
-    except requests.exceptions.RequestException as e:
-        print(f"Error during Ollama communication: {e}")
-        return jsonify({"error": f"Failed to communicate with Ollama model: {e}"}), 500
+def fetch_news(topic):
+
+    url = f"https://newsapi.org/v2/everything?q={topic}&language=en&pageSize=1&apiKey={NEWS_API_KEY}"
+
+    response = requests.get(url)
+
+    data = response.json()
+
+    if not data.get("articles"):
+        return None
+
+    article = data["articles"][0]
+
+    return article.get("description") or article.get("title")
 
 
-# --- Run the App ---
-if __name__ == '__main__':
-    # Use host='0.0.0.0' to make it accessible on your network if needed
-    app.run(debug=True, port=5000)
+def generate_satire(news_summary):
+
+    prompt = f"""
+You are a sarcastic reporter from 'The Fauxy'.
+
+Real news:
+{news_summary}
+
+Write a funny, sarcastic Indian satire news report.
+"""
+
+    payload = {
+        "model": MODEL_NAME,
+        "prompt": prompt,
+        "stream": False
+    }
+
+    response = requests.post(OLLAMA_URL, json=payload)
+
+    data = response.json()
+
+    return data.get("response", "")
+
+
+# ---------------- MAIN LOGIC ----------------
+
+if generate:
+
+    if not topic:
+        st.error("Please enter a topic")
+        st.stop()
+
+    progress = st.progress(0)
+    status = st.empty()
+
+    status.write("🔎 Searching news...")
+    progress.progress(20)
+
+    news_summary = fetch_news(topic)
+
+    if not news_summary:
+        st.error("No news found for this topic.")
+        st.stop()
+
+    status.write("📰 Found news article")
+    progress.progress(50)
+
+    status.write("🤖 Generating satire...")
+    progress.progress(80)
+
+    satire = generate_satire(news_summary)
+
+    progress.progress(100)
+    status.empty()
+
+    st.success("Satire generated!")
+
+    st.subheader("📰 Real News Summary")
+    st.write(news_summary)
+
+    st.subheader("😂 Fauxy Report")
+    st.write(satire)
