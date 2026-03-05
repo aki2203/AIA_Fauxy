@@ -19,7 +19,7 @@ st.markdown("""
 <style>
     /* Premium Gradient Background */
     .stApp {
-        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
     }
     
     /* Glass Morphism Cards */
@@ -249,7 +249,7 @@ with st.container():
         st.markdown('<p style="font-size: 48px; margin: 0;">🎯</p>', unsafe_allow_html=True)
     with col2:
         st.markdown('<p style="font-size: 24px; font-weight: bold; margin: 0; color: #333;">Create Fauxy News</p>', unsafe_allow_html=True)
-        st.markdown('<p style="color: #666; margin-top: 5px;">Transform real news into brilliant satire</p>', unsafe_allow_html=True)
+        st.markdown('<p style="color: #333; margin-top: 5px;">Transform real news into brilliant satire</p>', unsafe_allow_html=True)
     
     topic = st.text_input(
         "📰 Enter a news topic",
