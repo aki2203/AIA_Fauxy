@@ -2,7 +2,7 @@ import streamlit as st
 import requests
 import os
 
-API_URL = os.getenv("API_URL", "http://localhost:5000/satire")
+API_URL = os.getenv("API_URL", "https://aia-fauxy.onrender.com")
 
 st.set_page_config(page_title="Fauxy", page_icon="📰", layout="centered")
 st.title("🤡 Fauxy – India's Satirical AI")
