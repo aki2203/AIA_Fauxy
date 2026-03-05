@@ -19,7 +19,7 @@ st.markdown("""
 <style>
     /* Premium Gradient Background */
     .stApp {
-        background: linear-gradient(135deg, #89f7fe 0%, #66a6ff 100%);
+       background: linear-gradient(135deg, #ff9a9e 0%, #fad0c4 100%);
     }
     
     /* Glass Morphism Cards */
