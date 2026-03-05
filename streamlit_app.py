@@ -21,6 +21,15 @@ st.markdown("""
     .stApp {
           background: linear-gradient(135deg, #5f2c82 0%, #49a09d 100%);
     }
+
+    .stTextInput label {
+    font-weight: 600;
+    color: white !important;
+}
+
+.stTextInput {
+    margin-top: -10px;
+}
     
     /* Glass Morphism Cards */
     .glass-card {
